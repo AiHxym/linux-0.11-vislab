@@ -39,3 +39,15 @@ int printk(const char *fmt, ...)
 		::"r" (i):"ax","cx","dx");
 	return i;
 }
+
+static char logBuffer[4096];
+static int logBufferTail = 0;
+void log(const char *fmt)
+{
+	int i;
+	for(i=0; fmt[i] != '\0'; i++)
+	{
+		logBuffer[logBufferTail] = fmt[i];
+		logBufferTail++;
+	}
+}
