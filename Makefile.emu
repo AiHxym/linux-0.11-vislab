@@ -200,6 +200,6 @@ debug-fd: Image flp gdbinit
 	$(SETROOTDEV_CMD_FDB)
 	$(VM_CMD_FDB)$(VM_DBG)$(VM_DISPLAY)
 
-debug-hd: Image hda gdbinit
+debug-hd: Image hda hda-install gdbinit
 	$(SETROOTDEV_CMD_HDA)
 	$(VM_CMD_HDA)$(VM_DBG)$(VM_DISPLAY) &

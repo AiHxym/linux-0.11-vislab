@@ -109,7 +109,7 @@ void main(void)		/* This really IS void, no error here. */
  * Interrupts are still disabled. Do necessary setups, then
  * enable them
  */
-	log("test");
+	log("test\n");
  	ROOT_DEV = ORIG_ROOT_DEV;
  	drive_info = DRIVE_INFO;
 	memory_end = (1<<20) + (EXT_MEM_K<<10);
@@ -138,7 +138,6 @@ void main(void)		/* This really IS void, no error here. */
 	floppy_init();
 	sti();
 	move_to_user_mode();
-	log("test2");
 	if (!fork()) {		/* we count on this going ok */
 		init();
 	}
@@ -181,7 +180,6 @@ void init(void)
 		NR_BUFFERS*BLOCK_SIZE);
 	printf("Free mem: %d bytes\n\r",memory_end-main_memory_start);
 	if (!(pid=fork())) {
-		log("father");
 		close(0);
 		if (open("/etc/rc",O_RDONLY,0))
 			_exit(1);
@@ -189,7 +187,6 @@ void init(void)
 		_exit(2);
 	}
 	if (pid>0)
-		log("child");
 		while (pid != wait(&i))
 			/* nothing */;
 	while (1) {
