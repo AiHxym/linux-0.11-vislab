@@ -40,14 +40,19 @@ int printk(const char *fmt, ...)
 	return i;
 }
 
-static char logBuffer[4096];
-static int logBufferTail = 0;
-void log(const char *fmt)
+void log(const char *fmt, ...)
 {
+	va_list args;
 	int i;
-	for(i=0; fmt[i] != '\0'; i++)
-	{
-		logBuffer[logBufferTail] = fmt[i];
-		logBufferTail++;
-	}
+
+	va_start(args, fmt);
+	i=vsprintf(buf,fmt,args);
+	va_end(args);
+
+	gdb_log(buf);
+}
+
+void __attribute__((optimize("O0"))) gdb_log(const char *msg)
+{
+	// Do Nothing, just for debug.
 }
