@@ -112,6 +112,13 @@ int free_page_tables(unsigned long from,unsigned long size)
 	if (!from)
 		panic("Trying to free up swapper memory space");
 	size = (size + 0x3fffff) >> 22;
+
+
+	log("{\"module\":\"memory\", \"event\":\"free_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{\"from\":0x%lx,\"size\":%d,",current->pid,from,size);
+
+	log("\"page_phy\":[");
+
+	
 	dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
 	for ( ; size-->0 ; dir++) {
 		if (!(1 & *dir))
@@ -124,8 +131,15 @@ int free_page_tables(unsigned long from,unsigned long size)
 			pg_table++;
 		}
 		free_page(0xfffff000 & *dir);
+		log("0x%lx",0xfffff000 & *dir);
+		if (size!=0)
+		{
+			log(",");
+		}
 		*dir = 0;
 	}
+
+	log("]}}\n");
 	invalidate();
 	return 0;
 }
@@ -155,11 +169,19 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	unsigned long * from_dir, * to_dir;
 	unsigned long nr;
 
+	
+
 	if ((from&0x3fffff) || (to&0x3fffff))
 		panic("copy_page_tables called with wrong alignment");
 	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
+
+	log("{\"module\":\"memory\", \"event\":\"copy_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{\"from\":0x%lx,\"to\":0x%lx,\"size\":%d,",current->pid,from,to,size);
+
+	log("\"page_phy\":[");
+
+
 	for( ; size-->0 ; from_dir++,to_dir++) {
 		if (1 & *to_dir)
 			panic("copy_page_tables: already exist");
@@ -170,6 +192,13 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 			return -1;	/* Out of memory, see freeing */
 		*to_dir = ((unsigned long) to_page_table) | 7;
 		nr = (from==0)?0xA0:1024;
+
+		log("0x%lx",to_page_table);
+		if (size!=0)
+		{
+			log(",");
+		}
+
 		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
 			this_page = *from_page_table;
 			if (!(1 & this_page))
@@ -184,9 +213,21 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 			}
 		}
 	}
+
+
+	log("]}}\n");
+
+
 	invalidate();
 	return 0;
 }
+
+
+
+
+
+
+
 
 /*
  * This function puts a page in memory at the wanted address.
@@ -235,6 +276,12 @@ void un_wp_page(unsigned long * table_entry)
 	*table_entry = new_page | 7;
 	invalidate();
 	copy_page(old_page,new_page);
+
+
+	log("{\"module\":\"memory\", \"event\":\"un_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{\"old_page\":0x%lx,\"new_page\":0x%lx}}\n",current->pid,old_page,new_page);
+
+
 }	
 
 /*
@@ -331,6 +378,10 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 	phys_addr -= LOW_MEM;
 	phys_addr >>= 12;
 	mem_map[phys_addr]++;
+
+
+		log("{\"module\":\"memory\", \"event\":\"try_to_share\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{\"from_page\":0x%lx,\"to_page\":0x%lx,\"address\":0x%lx}}\n",current->pid,from_page,to_page,phys_addr);
 	return 1;
 }
 
@@ -392,7 +443,13 @@ void do_no_page(unsigned long error_code,unsigned long address)
 		*(char *)tmp = 0;
 	}
 	if (put_page(page,address))
+	{
+
+
+		log("{\"module\":\"memory\", \"event\":\"do_no_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{\"page\":0x%lx,\"address\":0x%lx}}\n",current->pid,page,address);
 		return;
+	}
 	free_page(page);
 	oom();
 }
