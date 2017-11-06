@@ -29,7 +29,7 @@
 #include <linux/kernel.h>
 
 void do_exit(long code);
-
+void print_task(void);
 static inline void oom(void)
 {
 	printk("out of memory\n\r");
@@ -114,9 +114,15 @@ int free_page_tables(unsigned long from,unsigned long size)
 	size = (size + 0x3fffff) >> 22;
 
 
-	log("{\"module\":\"memory\", \"event\":\"free_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{\"from\":0x%lx,\"size\":%d,",current->pid,from,size);
+	log("{\"module\":\"memory\", \"event\":\"free_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);
+	
+	print_task();
+
+	log(",\"from\":0x%lx,\"size\":%d,",from,size);
 
 	log("\"page_phy\":[");
+
+	
 
 	
 	dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
@@ -177,7 +183,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
 
-	log("{\"module\":\"memory\", \"event\":\"copy_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{\"from\":0x%lx,\"to\":0x%lx,\"size\":%d,",current->pid,from,to,size);
+	log("{\"module\":\"memory\", \"event\":\"copy_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"from\":0x%lx,\"to\":0x%lx,\"size\":%d,",from,to,size);
 
 	log("\"page_phy\":[");
 
@@ -279,7 +285,7 @@ void un_wp_page(unsigned long * table_entry)
 
 
 	log("{\"module\":\"memory\", \"event\":\"un_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
-\"data\":{\"old_page\":0x%lx,\"new_page\":0x%lx}}\n",current->pid,old_page,new_page);
+\"data\":{",current->pid);print_task(); log(",\"old_page\":0x%lx,\"new_page\":0x%lx}}\n",old_page,new_page);
 
 
 }	
@@ -381,7 +387,7 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 
 
 		log("{\"module\":\"memory\", \"event\":\"try_to_share\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
-\"data\":{\"from_page\":0x%lx,\"to_page\":0x%lx,\"address\":0x%lx}}\n",current->pid,from_page,to_page,phys_addr);
+\"data\":{",current->pid);print_task(); log(",\"from_page\":0x%lx,\"to_page\":0x%lx,\"address\":0x%lx}}\n",from_page,to_page,phys_addr);
 	return 1;
 }
 
@@ -447,7 +453,13 @@ void do_no_page(unsigned long error_code,unsigned long address)
 
 
 		log("{\"module\":\"memory\", \"event\":\"do_no_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
-\"data\":{\"page\":0x%lx,\"address\":0x%lx}}\n",current->pid,page,address);
+\"data\":{",current->pid);
+
+		print_task();
+
+
+
+		log(",\"page\":0x%lx,\"address\":0x%lx}}\n",page,address);
 		return;
 	}
 	free_page(page);
@@ -485,4 +497,9 @@ void calc_mem(void)
 			printk("Pg-dir[%d] uses %d pages\n",i,k);
 		}
 	}
+}
+
+void print_task(void)
+{
+	log("\"task\":{\"start_code\":0x%lx,\"end_code\":0x%lx,\"end_data\":0x%lx,\"brk\":0x%lx,\"start_stack\":0x%lx,\"esp\":0x%lx}",current->start_code,current->end_code,current->end_data,current->brk,current->start_stack,(current->tss).esp);
 }
