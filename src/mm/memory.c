@@ -31,14 +31,16 @@
 void do_exit(long code);
 void print_task(void);
 static inline void oom(void)
-{
+{	
+	log("{\"module\":\"memory\", \"event\":\"oom\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);
+	print_task();
+	log("}}\n");
+
 	printk("out of memory\n\r");
 	do_exit(SIGSEGV);
 }
 
-#define invalidate() \
-__asm__("movl %%eax,%%cr3"::"a" (0))
-
+#define invalidate() {__asm__("movl %%eax,%%cr3"::"a" (0));log("{\"module\":\"memory\", \"event\":\"invalidate\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task();log("}}\n");}
 /* these are not to be changed without changing head.s etc */
 #define LOW_MEM 0x100000
 #define PAGING_MEMORY (15*1024*1024)
@@ -282,13 +284,16 @@ void un_wp_page(unsigned long * table_entry)
 	*table_entry = new_page | 7;
 	invalidate();
 	copy_page(old_page,new_page);
-
+	log("{\"module\":\"memory\", \"event\":\"copy_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"old_page\":0x%lx,\"new_page\":0x%lx}}\n",old_page,new_page);
 
 	log("{\"module\":\"memory\", \"event\":\"un_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
-\"data\":{",current->pid);print_task(); log(",\"old_page\":0x%lx,\"new_page\":0x%lx}}\n",old_page,new_page);
+\"data\":{",current->pid);print_task(); log(",\"old_page\":0x%lx,\"new_page\":0x%lx,\"table_entry\":0x%lx}}\n",old_page,new_page,table_entry);
 
 
 }	
+
+
 
 /*
  * This routine handles present pages, when users try to write
@@ -305,6 +310,14 @@ void do_wp_page(unsigned long error_code,unsigned long address)
 	if (CODE_SPACE(address))
 		do_exit(SIGSEGV);
 #endif
+
+	log("{\"module\":\"memory\", \"event\":\"do_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);
+	print_task();
+	log(", \"address\":0x%lx}}\n",current->pid,address);
+	log("{\"module\":\"memory\", \"event\":\"page_exception_no_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task();log(",\"error_code\":0x%lx}}\n",error_code);
+	
 	un_wp_page((unsigned long *)
 		(((address>>10) & 0xffc) + (0xfffff000 &
 		*((unsigned long *) ((address>>20) &0xffc)))));
@@ -314,7 +327,8 @@ void do_wp_page(unsigned long error_code,unsigned long address)
 void write_verify(unsigned long address)
 {
 	unsigned long page;
-
+	log("{\"module\":\"memory\", \"event\":\"wrote_verify\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task();log(",\"address\":0x%lx}}\n",address);
 	if (!( (page = *((unsigned long *) ((address>>20) & 0xffc)) )&1))
 		return;
 	page &= 0xfffff000;
@@ -332,6 +346,9 @@ void get_empty_page(unsigned long address)
 		free_page(tmp);		/* 0 is ok - ignored */
 		oom();
 	}
+	log("{\"module\":\"memory\", \"event\":\"get_empty_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"address\":0x%lx,\"tmp\":0x%lx}}\n",address,tmp);
+
 }
 
 /*
@@ -387,7 +404,7 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 
 
 		log("{\"module\":\"memory\", \"event\":\"try_to_share\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
-\"data\":{",current->pid);print_task(); log(",\"from_page\":0x%lx,\"to_page\":0x%lx,\"address\":0x%lx}}\n",from_page,to_page,phys_addr);
+\"data\":{",current->pid);print_task(); log(",\"address\":0x%lx,\"start_addr\":0x%lx,\"from_page\":0x%lx,\"to_page\":0x%lx,\"phys_addr\":0x%lx}}\n",address,p->start_code,from_page,to_page,phys_addr);
 	return 1;
 }
 
@@ -402,10 +419,13 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 static int share_page(unsigned long address)
 {
 	struct task_struct ** p;
-
+  
 	if (!current->executable)
+		log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
+		
 		return 0;
 	if (current->executable->i_count < 2)
+		log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
 		return 0;
 	for (p = &LAST_TASK ; p > &FIRST_TASK ; --p) {
 		if (!*p)
@@ -415,8 +435,10 @@ static int share_page(unsigned long address)
 		if ((*p)->executable != current->executable)
 			continue;
 		if (try_to_share(address,*p))
+			 log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":1}}\n");
 			return 1;
 	}
+	log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
 	return 0;
 }
 
@@ -460,7 +482,12 @@ void do_no_page(unsigned long error_code,unsigned long address)
 
 
 		log(",\"page\":0x%lx,\"address\":0x%lx}}\n",page,address);
+
+
+		log("{\"module\":\"memory\", \"event\":\"page_exception_no_page\",\"provider\":\"gqz\",\"data\":{\"error_code\":0x%lx}}\n",error_code);
 		return;
+
+
 	}
 	free_page(page);
 	oom();
