@@ -1,7 +1,4 @@
 target remote :1234
-b startup_32
+source debug.py
 c
-b main
-c
-bt
-l
+
