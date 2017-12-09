@@ -133,8 +133,10 @@ int free_page_tables(unsigned long from,unsigned long size)
 			continue;
 		pg_table = (unsigned long *) (0xfffff000 & *dir);
 		for (nr=0 ; nr<1024 ; nr++) {
-			if (1 & *pg_table)
+			if (1 & *pg_table){
 				free_page(0xfffff000 & *pg_table);
+				log("0x%lx,",0xfffff000 & *pg_table);
+			}
 			*pg_table = 0;
 			pg_table++;
 		}
@@ -201,11 +203,8 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 		*to_dir = ((unsigned long) to_page_table) | 7;
 		nr = (from==0)?0xA0:1024;
 
-		log("0x%lx",to_page_table);
-		if (size!=0)
-		{
-			log(",");
-		}
+		log("0x%lx,",to_page_table);
+	
 
 		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
 			this_page = *from_page_table;
@@ -218,6 +217,11 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 				this_page -= LOW_MEM;
 				this_page >>= 12;
 				mem_map[this_page]++;
+
+				log("0x%lx",this_page);
+				if (size!=0 || nr !=0){
+					log(",");
+				}
 			}
 		}
 	}
@@ -315,7 +319,7 @@ void do_wp_page(unsigned long error_code,unsigned long address)
 \"data\":{",current->pid);
 	print_task();
 	log(", \"address\":0x%lx}}\n",current->pid,address);
-	log("{\"module\":\"memory\", \"event\":\"page_exception_no_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+	log("{\"module\":\"memory\", \"event\":\"page_exception_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
 \"data\":{",current->pid);print_task();log(",\"error_code\":0x%lx}}\n",error_code);
 	
 	un_wp_page((unsigned long *)
@@ -398,13 +402,16 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 	*(unsigned long *) from_page &= ~2;
 	*(unsigned long *) to_page = *(unsigned long *) from_page;
 	invalidate();
+
+	
+
+		log("{\"module\":\"memory\", \"event\":\"try_to_share\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"address\":0x%lx,\"start_addr\":0x%lx,\"from_page\":0x%lx,\"to_page\":0x%lx,\"phys_addr\":0x%lx}}\n",address,p->start_code,from_page,to_page,phys_addr);
 	phys_addr -= LOW_MEM;
 	phys_addr >>= 12;
 	mem_map[phys_addr]++;
 
 
-		log("{\"module\":\"memory\", \"event\":\"try_to_share\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
-\"data\":{",current->pid);print_task(); log(",\"address\":0x%lx,\"start_addr\":0x%lx,\"from_page\":0x%lx,\"to_page\":0x%lx,\"phys_addr\":0x%lx}}\n",address,p->start_code,from_page,to_page,phys_addr);
 	return 1;
 }
 
@@ -421,12 +428,14 @@ static int share_page(unsigned long address)
 	struct task_struct ** p;
   
 	if (!current->executable)
+	{
 		log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
 		
 		return 0;
-	if (current->executable->i_count < 2)
+	}
+	if (current->executable->i_count < 2){
 		log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
-		return 0;
+		return 0;}
 	for (p = &LAST_TASK ; p > &FIRST_TASK ; --p) {
 		if (!*p)
 			continue;
@@ -434,9 +443,10 @@ static int share_page(unsigned long address)
 			continue;
 		if ((*p)->executable != current->executable)
 			continue;
-		if (try_to_share(address,*p))
+		if (try_to_share(address,*p)){
 			 log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":1}}\n");
 			return 1;
+		}
 	}
 	log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
 	return 0;
@@ -484,7 +494,9 @@ void do_no_page(unsigned long error_code,unsigned long address)
 		log(",\"page\":0x%lx,\"address\":0x%lx}}\n",page,address);
 
 
-		log("{\"module\":\"memory\", \"event\":\"page_exception_no_page\",\"provider\":\"gqz\",\"data\":{\"error_code\":0x%lx}}\n",error_code);
+		log("{\"module\":\"memory\", \"event\":\"page_exception_no_page\",\"provider\":\"gqz\",\"data\":{",error_code);
+		print_task();
+		log(",\"error_code\":0x%lx}}\n",error_code);
 		return;
 
 
