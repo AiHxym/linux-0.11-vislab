@@ -46,16 +46,25 @@ __res;})
 
 void free_block(int dev, int block)
 {
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"free_block\",\"data\":{\"dev\":%d,\"block\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,dev,block);
 	struct super_block * sb;
 	struct buffer_head * bh;
 
 	if (!(sb = get_super(dev)))
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"null_sb\",\"data\":{}}\n",CURRENT_TIME);
 		panic("trying to free block on nonexistent device");
+	}
 	if (block < sb->s_firstdatazone || block >= sb->s_nzones)
+	{
+		
 		panic("trying to free block not in datazone");
+	}
 	bh = get_hash_table(dev,block);
-	if (bh) {
-		if (bh->b_count != 1) {
+	if (bh)
+	{
+		if (bh->b_count != 1)
+		{
 			printk("trying to free block (%04x:%d), count=%d\n",
 				dev,block,bh->b_count);
 			return;
@@ -70,10 +79,12 @@ void free_block(int dev, int block)
 		panic("free_block: bit already cleared");
 	}
 	sb->s_zmap[block/8192]->b_dirt = 1;
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"free_block\",\"data\":{\"dev\":%d,\"block\":%d,\"result\":\"end\"}}\n",CURRENT_TIME,dev,block);
 }
 
 int new_block(int dev)
 {
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"new_block\",\"data\":{\"dev\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,dev);
 	struct buffer_head * bh;
 	struct super_block * sb;
 	int i,j;
@@ -92,7 +103,10 @@ int new_block(int dev)
 	bh->b_dirt = 1;
 	j += i*8192 + sb->s_firstdatazone-1;
 	if (j >= sb->s_nzones)
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"new_block\",\"data\":{\"dev\":%d,\"result\":\"end\"}}\n",CURRENT_TIME,dev);
 		return 0;
+	}
 	if (!(bh=getblk(dev,j)))
 		panic("new_block: cannot get block");
 	if (bh->b_count != 1)
@@ -101,11 +115,13 @@ int new_block(int dev)
 	bh->b_uptodate = 1;
 	bh->b_dirt = 1;
 	brelse(bh);
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"new_block\",\"data\":{\"dev\":%d,\"result\":\"end\",\"block\":%d}}\n",CURRENT_TIME,dev,j);
 	return j;
 }
 
 void free_inode(struct m_inode * inode)
 {
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"free_inode\",\"data\":{\"inode\":%d}}\n",CURRENT_TIME,inode->i_num);
 	struct super_block * sb;
 	struct buffer_head * bh;
 
@@ -135,6 +151,7 @@ void free_inode(struct m_inode * inode)
 
 struct m_inode * new_inode(int dev)
 {
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"new_inode\",\"data\":{\"dev\":%d,\"result\":\"strat\"}}\n",CURRENT_TIME,dev);
 	struct m_inode * inode;
 	struct super_block * sb;
 	struct buffer_head * bh;
@@ -164,5 +181,7 @@ struct m_inode * new_inode(int dev)
 	inode->i_dirt=1;
 	inode->i_num = j + i*8192;
 	inode->i_mtime = inode->i_atime = inode->i_ctime = CURRENT_TIME;
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"new_block\",\"data\":{\"dev\":%d,\"result\":\"end\",\"inode\":%d}}\n",CURRENT_TIME,dev,inode->i_num);
 	return inode;
+
 }

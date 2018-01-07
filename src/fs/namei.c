@@ -39,17 +39,25 @@
  */
 static int permission(struct m_inode * inode,int mask)
 {
+	
 	int mode = inode->i_mode;
 
 /* special case: not even root can read/write a deleted file */
 	if (inode->i_dev && !inode->i_nlinks)
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"permission\",\"data\":{\"inode\":%d,\"mask\":%d,\"P\":0}}\n",CURRENT_TIME,inode->i_num,mask);
 		return 0;
+	}
 	else if (current->euid==inode->i_uid)
 		mode >>= 6;
 	else if (current->egid==inode->i_gid)
 		mode >>= 3;
 	if (((mode & mask & 0007) == mask) || suser())
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"permission\",\"data\":{\"inode\":%d,\"mask\":%d,\"P\":1}}\n",CURRENT_TIME,inode->i_num,mask);
 		return 1;
+	}
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"permission\",\"data\":{\"inode\":%d,\"mask\":%d,\"P\":0}}\n",CURRENT_TIME,inode->i_num,mask);
 	return 0;
 }
 
@@ -91,6 +99,8 @@ static int match(int len,const char * name,struct dir_entry * de)
 static struct buffer_head * find_entry(struct m_inode ** dir,
 	const char * name, int namelen, struct dir_entry ** res_dir)
 {
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"find_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"start\"}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
+	
 	int entries;
 	int block,i;
 	struct buffer_head * bh;
@@ -107,7 +117,10 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
 	entries = (*dir)->i_size / (sizeof (struct dir_entry));
 	*res_dir = NULL;
 	if (!namelen)
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"find_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
 		return NULL;
+	}
 /* check for '..', as we might have to do some "magic" for it */
 	if (namelen==2 && get_fs_byte(name)=='.' && get_fs_byte(name+1)=='.') {
 /* '..' in a pseudo-root results in a faked '.' (just change namelen) */
@@ -125,9 +138,16 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
 		}
 	}
 	if (!(block = (*dir)->i_zone[0]))
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"find_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
 		return NULL;
+	}
 	if (!(bh = bread((*dir)->i_dev,block)))
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"find_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
+
 		return NULL;
+	}
 	i = 0;
 	de = (struct dir_entry *) bh->b_data;
 	while (i < entries) {
@@ -143,12 +163,16 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
 		}
 		if (match(namelen,name,de)) {
 			*res_dir = de;
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"find_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":%d}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir,bh->b_blocknr);
+
 			return bh;
+		
 		}
 		de++;
 		i++;
 	}
 	brelse(bh);
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"find_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
 	return NULL;
 }
 
@@ -168,21 +192,36 @@ static struct buffer_head * add_entry(struct m_inode * dir,
 	int block,i;
 	struct buffer_head * bh;
 	struct dir_entry * de;
-
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"start\"}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
 	*res_dir = NULL;
 #ifdef NO_TRUNCATE
 	if (namelen > NAME_LEN)
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
+
 		return NULL;
+	}
 #else
 	if (namelen > NAME_LEN)
 		namelen = NAME_LEN;
 #endif
 	if (!namelen)
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
+
 		return NULL;
+	}
 	if (!(block = dir->i_zone[0]))
+	{		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
+
 		return NULL;
+	}
 	if (!(bh = bread(dir->i_dev,block)))
+	{
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
+
 		return NULL;
+	}
 	i = 0;
 	de = (struct dir_entry *) bh->b_data;
 	while (1) {
@@ -191,7 +230,10 @@ static struct buffer_head * add_entry(struct m_inode * dir,
 			bh = NULL;
 			block = create_block(dir,i/DIR_ENTRIES_PER_BLOCK);
 			if (!block)
+			{
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":null}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir);
 				return NULL;
+			}
 			if (!(bh = bread(dir->i_dev,block))) {
 				i += DIR_ENTRIES_PER_BLOCK;
 				continue;
@@ -210,6 +252,8 @@ static struct buffer_head * add_entry(struct m_inode * dir,
 				de->name[i]=(i<namelen)?get_fs_byte(name+i):0;
 			bh->b_dirt = 1;
 			*res_dir = de;
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"add_entry\",\"data\":{\"dir\":%d,\"name\":0,\"namelen\":%d,\"res_dir\":%d,\"*res_dir\":%d\"result\":\"end\",\"buffer\":%d}}\n",CURRENT_TIME,dir,namelen,res_dir,*res_dir,bh->b_blocknr);
+
 			return bh;
 		}
 		de++;
@@ -278,18 +322,23 @@ static struct m_inode * get_dir(const char * pathname)
 static struct m_inode * dir_namei(const char * pathname,
 	int * namelen, const char ** name)
 {
+	
 	char c;
 	const char * basename;
 	struct m_inode * dir;
 
 	if (!(dir = get_dir(pathname)))
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"dir_namei\",\"data\":{\"pathname\":0,\"*namelen\":%d,\"name\":0,\"dir\":null}}\n",CURRENT_TIME,*namelen);
 		return NULL;
+	}
 	basename = pathname;
 	while ((c=get_fs_byte(pathname++)))
 		if (c=='/')
 			basename=pathname;
 	*namelen = pathname-basename-1;
 	*name = basename;
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"dir_namei\",\"data\":{\"pathname\":0,\"*namelen\":%d,\"name\":0,\"dir\":%d}}\n",CURRENT_TIME,*namelen,dir);
 	return dir;
 }
 
@@ -337,6 +386,7 @@ struct m_inode * namei(const char * pathname)
 int open_namei(const char * pathname, int flag, int mode,
 	struct m_inode ** res_inode)
 {
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,flag,mode,res_inode);
 	const char * basename;
 	int inr,dev,namelen;
 	struct m_inode * dir, *inode;
@@ -348,64 +398,134 @@ int open_namei(const char * pathname, int flag, int mode,
 	mode &= 0777 & ~current->umask;
 	mode |= I_REGULAR;
 	if (!(dir = dir_namei(pathname,&namelen,&basename)))
+	{
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -ENOENT\",\"result\":\"!(dir = dir_namei(pathname,&namelen,&basename))\"}}\n",CURRENT_TIME);
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}\n",CURRENT_TIME);
 		return -ENOENT;
+	}
 	if (!namelen) {			/* special case: '/usr/' etc */
 		if (!(flag & (O_ACCMODE|O_CREAT|O_TRUNC))) {
 			*res_inode=dir;
-			return 0;
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\",\"inode\":{\"i_mode\":%d,\"i_uid\":%d,\"i_size\":%d,\"i_mtime\":%d,\"i_gid\":%d,\"i_nlinks\":%d,\"i_zone[0]\":%d,\"i_atime\":%d,\"i_ctime\":%d, \"i_dev\":%d,\"i_num\":%d, \"i_count\":%d, \"i_lock\":%d,\"i_dirt\":%d,\"i_pipe\":%d, \"i_mount\":%d,\"i_seek\":%d,\"i_update\":%d}}}\n",CURRENT_TIME,
+		flag,mode,res_inode,dir->i_mode,dir->i_uid,dir->i_size,dir->i_mtime,dir->i_gid,dir->i_nlinks,dir->i_zone[0],dir->i_atime,dir->i_ctime,dir->i_dev,dir->i_num,dir->i_count,dir->i_lock,dir->i_dirt,dir->i_pipe,dir->i_mount,dir->i_seek,dir->i_update);
+		return 0;
 		}
 		iput(dir);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}\n",CURRENT_TIME);
 		return -EISDIR;
 	}
 	bh = find_entry(&dir,basename,namelen,&de);
+	
 	if (!bh) {
+		//log("\"find_entry\":0,");
 		if (!(flag & O_CREAT)) {
 			iput(dir);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -ENOENT\",\"result\":\"!(flag & O_CREAT)\"}}\n",CURRENT_TIME);
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
 			return -ENOENT;
 		}
 		if (!permission(dir,MAY_WRITE)) {
 			iput(dir);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -EACCES\",\"result\":\"!permission(dir,MAY_WRITE)\"}}\n",CURRENT_TIME);
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+				log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			//log("\"ERROR\":\"no right\"}},\n");
 			return -EACCES;
 		}
 		inode = new_inode(dir->i_dev);
 		if (!inode) {
+			//log("\"inode\":0,");
 			iput(dir);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -ENOSPC\",\"result\":\"!inode\"}}\n",CURRENT_TIME);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			//log("\"ERROR\":\"failed to give a inode\"}},\n");
 			return -ENOSPC;
 		}
 		inode->i_uid = current->euid;
 		inode->i_mode = mode;
 		inode->i_dirt = 1;
+				
+
 		bh = add_entry(dir,basename,namelen,&de);
 		if (!bh) {
+			//log("\"add_entry\":0");
 			inode->i_nlinks--;
 			iput(inode);
 			iput(dir);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\"-ENOSPC\",\"result\":\"!bh\"}}\n",CURRENT_TIME);
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
 			return -ENOSPC;
 		}
+		//log("\"add_entry\":1,");
 		de->inode = inode->i_num;
 		bh->b_dirt = 1;
 		brelse(bh);
+		//log("\"brelse\":1,");
 		iput(dir);
 		*res_inode = inode;
+		//log("\"res_inode\":{\"i_mode\":%d,\"i_uid\":%d,\"i_size\":%d,\"i_mtime\":%d,\"i_gid\":%d,\"i_nlinks\":%d,\"i_zone[0]\":%d,\"i_atime\":%d,\"i_ctime\":%d, \"i_dev\":%d,\"i_num\":%d, \"i_count\":%d, \"i_lock\":%d,\"i_dirt\":%d,\"i_pipe\":%d, \"i_mount\":%d,\"i_seek\":%d,\"i_update\":%d}}},\n",
+		//	 dir->i_mode,dir->i_uid,dir->i_size,dir->i_mtime,dir->i_gid,dir->i_nlinks,dir->i_zone[0],dir->i_atime,dir->i_ctime,dir->i_dev,dir->i_num,dir->i_count,dir->i_lock,dir->i_dirt,dir->i_pipe,dir->i_mount,dir->i_seek,dir->i_update);
 		return 0;
 	}
+	//log(" \"find_entry\":1,");
+	//log("\"buffer_head\":{\"b_data\":%d,  \"b_blocknr\":%d, \"b_dev\":%d, \"b_uptodate\":%d, \"b_dirt\":%d, \"b_count\":%d, \"b_lock\":%d, \"b_wait\":%d, \"b_prev\":%d, \"b_next\":%d, \"b_prev_free\":%d, \"b_next_free\":%d},\n",
+	//	   bh->b_data,bh->b_blocknr,bh->b_dev,bh->b_uptodate,bh->b_dirt,bh->b_count,bh->b_lock,bh->b_wait,bh->b_prev,bh->b_next,bh->b_prev_free,bh->b_next_free);
+			
 	inr = de->inode;
 	dev = dir->i_dev;
 	brelse(bh);
+	//log("\"brelse\":1 ,");
 	iput(dir);
 	if (flag & O_EXCL)
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -EEXIST\",\"result\":\"flag & O_EXCL\"}}\n",CURRENT_TIME);
+		//log("\"ERROR\":\"file exist\"}},\n");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
 		return -EEXIST;
+	}
 	if (!(inode=iget(dev,inr)))
+	{
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -EACCES\",\"result\":\"!(inode=iget(dev,inr))\"}}\n",CURRENT_TIME);
+		//log("\"ERROR\":\"no inode\"}},\n");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
 		return -EACCES;
+	}
 	if ((S_ISDIR(inode->i_mode) && (flag & O_ACCMODE)) ||
 	    !permission(inode,ACC_MODE(flag))) {
 		iput(inode);
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"error\",\"data\":{\"errorcode\":\" -EPERM\",\"result\":\"(S_ISDIR(inode->i_mode) && (flag & O_ACCMODE)) ||!permission(inode,ACC_MODE(flag))\"}}\n",CURRENT_TIME);
+		
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\"}}");
+			//log("\"ERROR\":\"no right\"}},\n");
 		return -EPERM;
 	}
 	inode->i_atime = CURRENT_TIME;
 	if (flag & O_TRUNC)
 		truncate(inode);
 	*res_inode = inode;
+	//log("\"res_inode\":{\"i_mode\":%d,\"i_uid\":%d,\"i_size\":%d,\"i_mtime\":%d,\"i_gid\":%d,\"i_nlinks\":%d,\"i_zone[0]\":%d,\"i_atime\":%d,\"i_ctime\":%d, \"i_dev\":%d,\"i_num\":%d, \"i_count\":%d, \"i_lock\":%d,\"i_dirt\":%d,\"i_pipe\":%d, \"i_mount\":%d,\"i_seek\":%d,\"i_update\":%d}}},\n",
+	//	dir->i_mode,dir->i_uid,dir->i_size,dir->i_mtime,dir->i_gid,dir->i_nlinks,dir->i_zone[0],dir->i_atime,dir->i_ctime,dir->i_dev,dir->i_num,dir->i_count,dir->i_lock,dir->i_dirt,dir->i_pipe,dir->i_mount,dir->i_seek,dir->i_update);
+		
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\",\"inode\":{\"i_mode\":%d,\"i_uid\":%d,\"i_size\":%d,\"i_mtime\":%d,\"i_gid\":%d,\"i_nlinks\":%d,\"i_zone[0]\":%d,\"i_atime\":%d,\"i_ctime\":%d, \"i_dev\":%d,\"i_num\":%d, \"i_count\":%d, \"i_lock\":%d,\"i_dirt\":%d,\"i_pipe\":%d, \"i_mount\":%d,\"i_seek\":%d,\"i_update\":%d}}}\n",CURRENT_TIME,
+		flag,mode,res_inode,dir->i_mode,dir->i_uid,dir->i_size,dir->i_mtime,dir->i_gid,dir->i_nlinks,dir->i_zone[0],dir->i_atime,dir->i_ctime,dir->i_dev,dir->i_num,dir->i_count,dir->i_lock,dir->i_dirt,dir->i_pipe,dir->i_mount,dir->i_seek,dir->i_update);
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\",\"inode\":{\"i_mode\":%d,\"i_uid\":%d,\"i_size\":%d,\"i_mtime\":%d,\"i_gid\":%d,\"i_nlinks\":%d,\"i_zone[0]\":%d,\"i_atime\":%d,\"i_ctime\":%d, \"i_dev\":%d,\"i_num\":%d, \"i_count\":%d, \"i_lock\":%d,\"i_dirt\":%d,\"i_pipe\":%d, \"i_mount\":%d,\"i_seek\":%d,\"i_update\":%d}}}\n",CURRENT_TIME,
+		flag,mode,res_inode,dir->i_mode,dir->i_uid,dir->i_size,dir->i_mtime,dir->i_gid,dir->i_nlinks,dir->i_zone[0],dir->i_atime,dir->i_ctime,dir->i_dev,dir->i_num,dir->i_count,dir->i_lock,dir->i_dirt,dir->i_pipe,dir->i_mount,dir->i_seek,dir->i_update);
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"open_namei\",\"data\":{\"flag\":%d,\"mode\":%d,\"res_inode\":%d,\"result\":\"end\",\"inode\":{\"i_mode\":%d,\"i_uid\":%d,\"i_size\":%d,\"i_mtime\":%d,\"i_gid\":%d,\"i_nlinks\":%d,\"i_zone[0]\":%d,\"i_atime\":%d,\"i_ctime\":%d, \"i_dev\":%d,\"i_num\":%d, \"i_count\":%d, \"i_lock\":%d,\"i_dirt\":%d,\"i_pipe\":%d, \"i_mount\":%d,\"i_seek\":%d,\"i_update\":%d}}}\n",CURRENT_TIME,
+		flag,mode,res_inode,dir->i_mode,dir->i_uid,dir->i_size,dir->i_mtime,dir->i_gid,dir->i_nlinks,dir->i_zone[0],dir->i_atime,dir->i_ctime,dir->i_dev,dir->i_num,dir->i_count,dir->i_lock,dir->i_dirt,dir->i_pipe,dir->i_mount,dir->i_seek,dir->i_update);
+	
 	return 0;
 }
 
