@@ -29,16 +29,18 @@
 #include <linux/kernel.h>
 
 void do_exit(long code);
-
+void print_task(void);
 static inline void oom(void)
-{
+{	
+	log("{\"module\":\"memory\", \"event\":\"oom\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);
+	print_task();
+	log("}}\n");
+
 	printk("out of memory\n\r");
 	do_exit(SIGSEGV);
 }
 
-#define invalidate() \
-__asm__("movl %%eax,%%cr3"::"a" (0))
-
+#define invalidate() {__asm__("movl %%eax,%%cr3"::"a" (0));log("{\"module\":\"memory\", \"event\":\"invalidate\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task();log("}}\n");}
 /* these are not to be changed without changing head.s etc */
 #define LOW_MEM 0x100000
 #define PAGING_MEMORY (15*1024*1024)
@@ -112,20 +114,42 @@ int free_page_tables(unsigned long from,unsigned long size)
 	if (!from)
 		panic("Trying to free up swapper memory space");
 	size = (size + 0x3fffff) >> 22;
+
+
+	log("{\"module\":\"memory\", \"event\":\"free_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);
+	
+	print_task();
+
+	log(",\"from\":0x%lx,\"size\":%d,",from,size);
+
+	log("\"page_phy\":[");
+
+	
+
+	
 	dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
 	for ( ; size-->0 ; dir++) {
 		if (!(1 & *dir))
 			continue;
 		pg_table = (unsigned long *) (0xfffff000 & *dir);
 		for (nr=0 ; nr<1024 ; nr++) {
-			if (1 & *pg_table)
+			if (1 & *pg_table){
 				free_page(0xfffff000 & *pg_table);
+				log("0x%lx,",0xfffff000 & *pg_table);
+			}
 			*pg_table = 0;
 			pg_table++;
 		}
 		free_page(0xfffff000 & *dir);
+		log("0x%lx",0xfffff000 & *dir);
+		if (size!=0)
+		{
+			log(",");
+		}
 		*dir = 0;
 	}
+
+	log("]}}\n");
 	invalidate();
 	return 0;
 }
@@ -155,11 +179,19 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	unsigned long * from_dir, * to_dir;
 	unsigned long nr;
 
+	
+
 	if ((from&0x3fffff) || (to&0x3fffff))
 		panic("copy_page_tables called with wrong alignment");
 	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
+
+	log("{\"module\":\"memory\", \"event\":\"copy_page_tables\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"from\":0x%lx,\"to\":0x%lx,\"size\":%d,",from,to,size);
+
+	log("\"page_phy\":[");
+
+
 	for( ; size-->0 ; from_dir++,to_dir++) {
 		if (1 & *to_dir)
 			panic("copy_page_tables: already exist");
@@ -170,6 +202,10 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 			return -1;	/* Out of memory, see freeing */
 		*to_dir = ((unsigned long) to_page_table) | 7;
 		nr = (from==0)?0xA0:1024;
+
+		log("0x%lx,",to_page_table);
+	
+
 		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
 			this_page = *from_page_table;
 			if (!(1 & this_page))
@@ -181,12 +217,29 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 				this_page -= LOW_MEM;
 				this_page >>= 12;
 				mem_map[this_page]++;
+
+				log("0x%lx",this_page);
+				if (size!=0 || nr !=0){
+					log(",");
+				}
 			}
 		}
 	}
+
+
+	log("]}}\n");
+
+
 	invalidate();
 	return 0;
 }
+
+
+
+
+
+
+
 
 /*
  * This function puts a page in memory at the wanted address.
@@ -235,7 +288,16 @@ void un_wp_page(unsigned long * table_entry)
 	*table_entry = new_page | 7;
 	invalidate();
 	copy_page(old_page,new_page);
+	log("{\"module\":\"memory\", \"event\":\"copy_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"old_page\":0x%lx,\"new_page\":0x%lx}}\n",old_page,new_page);
+
+	log("{\"module\":\"memory\", \"event\":\"un_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"old_page\":0x%lx,\"new_page\":0x%lx,\"table_entry\":0x%lx}}\n",old_page,new_page,table_entry);
+
+
 }	
+
+
 
 /*
  * This routine handles present pages, when users try to write
@@ -252,6 +314,14 @@ void do_wp_page(unsigned long error_code,unsigned long address)
 	if (CODE_SPACE(address))
 		do_exit(SIGSEGV);
 #endif
+
+	log("{\"module\":\"memory\", \"event\":\"do_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);
+	print_task();
+	log(", \"address\":0x%lx}}\n",current->pid,address);
+	log("{\"module\":\"memory\", \"event\":\"page_exception_wp_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task();log(",\"error_code\":0x%lx}}\n",error_code);
+	
 	un_wp_page((unsigned long *)
 		(((address>>10) & 0xffc) + (0xfffff000 &
 		*((unsigned long *) ((address>>20) &0xffc)))));
@@ -261,7 +331,8 @@ void do_wp_page(unsigned long error_code,unsigned long address)
 void write_verify(unsigned long address)
 {
 	unsigned long page;
-
+	log("{\"module\":\"memory\", \"event\":\"wrote_verify\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task();log(",\"address\":0x%lx}}\n",address);
 	if (!( (page = *((unsigned long *) ((address>>20) & 0xffc)) )&1))
 		return;
 	page &= 0xfffff000;
@@ -279,6 +350,9 @@ void get_empty_page(unsigned long address)
 		free_page(tmp);		/* 0 is ok - ignored */
 		oom();
 	}
+	log("{\"module\":\"memory\", \"event\":\"get_empty_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"address\":0x%lx,\"tmp\":0x%lx}}\n",address,tmp);
+
 }
 
 /*
@@ -328,9 +402,16 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 	*(unsigned long *) from_page &= ~2;
 	*(unsigned long *) to_page = *(unsigned long *) from_page;
 	invalidate();
+
+	
+
+		log("{\"module\":\"memory\", \"event\":\"try_to_share\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"address\":0x%lx,\"start_addr\":0x%lx,\"from_page\":0x%lx,\"to_page\":0x%lx,\"phys_addr\":0x%lx}}\n",address,p->start_code,from_page,to_page,phys_addr);
 	phys_addr -= LOW_MEM;
 	phys_addr >>= 12;
 	mem_map[phys_addr]++;
+
+
 	return 1;
 }
 
@@ -345,11 +426,16 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 static int share_page(unsigned long address)
 {
 	struct task_struct ** p;
-
+  
 	if (!current->executable)
+	{
+		log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
+		
 		return 0;
-	if (current->executable->i_count < 2)
-		return 0;
+	}
+	if (current->executable->i_count < 2){
+		log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
+		return 0;}
 	for (p = &LAST_TASK ; p > &FIRST_TASK ; --p) {
 		if (!*p)
 			continue;
@@ -357,9 +443,12 @@ static int share_page(unsigned long address)
 			continue;
 		if ((*p)->executable != current->executable)
 			continue;
-		if (try_to_share(address,*p))
+		if (try_to_share(address,*p)){
+			 log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":1}}\n");
 			return 1;
+		}
 	}
+	log("{\"module\":\"memory\", \"event\":\"share_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\"data\":{",current->pid);print_task(); log(",\"sucessful\":0}}\n");
 	return 0;
 }
 
@@ -392,7 +481,26 @@ void do_no_page(unsigned long error_code,unsigned long address)
 		*(char *)tmp = 0;
 	}
 	if (put_page(page,address))
+	{
+
+
+		log("{\"module\":\"memory\", \"event\":\"do_no_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);
+
+		print_task();
+
+
+
+		log(",\"page\":0x%lx,\"address\":0x%lx}}\n",page,address);
+
+
+		log("{\"module\":\"memory\", \"event\":\"page_exception_no_page\",\"provider\":\"gqz\",\"data\":{",error_code);
+		print_task();
+		log(",\"error_code\":0x%lx}}\n",error_code);
 		return;
+
+
+	}
 	free_page(page);
 	oom();
 }
@@ -428,4 +536,9 @@ void calc_mem(void)
 			printk("Pg-dir[%d] uses %d pages\n",i,k);
 		}
 	}
+}
+
+void print_task(void)
+{
+	log("\"task\":{\"start_code\":0x%lx,\"end_code\":0x%lx,\"end_data\":0x%lx,\"brk\":0x%lx,\"start_stack\":0x%lx,\"esp\":0x%lx}",current->start_code,current->end_code,current->end_data,current->brk,current->start_stack,(current->tss).esp);
 }

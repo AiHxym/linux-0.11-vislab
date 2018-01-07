@@ -138,6 +138,7 @@ void main(void)		/* This really IS void, no error here. */
 	floppy_init();
 	sti();
 	move_to_user_mode();
+	
 	if (!fork()) {		/* we count on this going ok */
 		init();
 	}
@@ -148,6 +149,7 @@ void main(void)		/* This really IS void, no error here. */
  * can run). For task0 'pause()' just means we go check if some other
  * task can run, and if not we return here.
  */
+	log("system init finsh\n");
 	for(;;) pause();
 }
 
