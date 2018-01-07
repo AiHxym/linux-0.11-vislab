@@ -48,7 +48,7 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <asm/system.h>
-
+#include <linux/sched.h>
 struct bucket_desc {	/* 16 bytes */
 	void			*page;
 	struct bucket_desc	*next;
@@ -61,7 +61,7 @@ struct _bucket_dir {	/* 8 bytes */
 	int			size;
 	struct bucket_desc	*chain;
 };
-
+// void print_task(void);
 /*
  * The following is the where we store a pointer to the first bucket
  * descriptor for a given size.  
@@ -100,6 +100,11 @@ static inline void init_bucket_desc()
 	int	i;
 	
 	first = bdesc = (struct bucket_desc *) get_free_page();
+
+
+	log("{\"module\":\"memory\", \"event\":\"init_bucket_desc\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",first);
+
 	if (!bdesc)
 		panic("Out of memory in init_bucket_desc()");
 	for (i = PAGE_SIZE/sizeof(struct bucket_desc); i > 1; i--) {
@@ -154,6 +159,10 @@ void *malloc(unsigned int len)
 		bdesc->refcnt = 0;
 		bdesc->bucket_size = bdir->size;
 		bdesc->page = bdesc->freeptr = (void *) (cp = (char *) get_free_page());
+
+		log("{\"module\":\"memory\", \"event\":\"malloc\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",bdesc->page);
+
 		if (!cp)
 			panic("Out of memory in kernel malloc()");
 		/* Set up the chain of free objects */
@@ -223,10 +232,19 @@ found:
 			bdir->chain = bdesc->next;
 		}
 		free_page((unsigned long) bdesc->page);
+		log("{\"module\":\"memory\", \"event\":\"free_s\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",bdesc->page);
+
 		bdesc->next = free_bucket_desc;
 		free_bucket_desc = bdesc;
 	}
 	sti();
 	return;
 }
+
+// void print_task(void)
+// {
+// 	log("\"task\":{\"start_code\":0x%lx,\"end_code\":0x%lx,\"end_data\":0x%lx,\"brk\":0x%lx,\"start_stack\":0x%lx,\"esp\":0x%lx}",current->start_code,current->end_code,current->end_data,current->brk,current->start_stack,(current->tss).esp);
+// }
+
 

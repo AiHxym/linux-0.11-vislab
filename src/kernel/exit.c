@@ -16,6 +16,7 @@
 int sys_pause(void);
 int sys_close(int fd);
 
+
 void release(struct task_struct * p)
 {
 	int i;
@@ -26,6 +27,8 @@ void release(struct task_struct * p)
 		if (task[i]==p) {
 			task[i]=NULL;
 			free_page((long)p);
+					log("{\"module\":\"memory\", \"event\":\"release\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",p);
 			schedule();
 			return;
 		}
@@ -192,5 +195,6 @@ repeat:
 	}
 	return -ECHILD;
 }
+
 
 
