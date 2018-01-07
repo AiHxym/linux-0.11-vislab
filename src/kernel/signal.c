@@ -60,10 +60,15 @@ int sys_signal(int signum, long handler, long restorer)
 	return handler;
 }
 
-int sys_sigaction(int signum, const struct sigaction * action,
+int sys_sigaction(int signum, const struct sigaction * action,//-----------------------log
 	struct sigaction * oldaction)
 {
 	struct sigaction tmp;
+
+	
+	//log("{\n");          //---------------------------------------log
+	//log("	\"signum\": \"%d\"\n",signum);
+	//log("}\n");
 
 	if (signum<1 || signum>32 || signum==SIGKILL)
 		return -1;
