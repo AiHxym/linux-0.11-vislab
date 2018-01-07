@@ -28,7 +28,6 @@ int sys_ssetmask(int newmask)
 static inline void save_old(char * from,char * to)
 {
 	int i;
-
 	verify_area(to, sizeof(struct sigaction));
 	for (i=0 ; i< sizeof(struct sigaction) ; i++) {
 		put_fs_byte(*from,to);
@@ -51,6 +50,8 @@ int sys_signal(int signum, long handler, long restorer)
 
 	if (signum<1 || signum>32 || signum==SIGKILL)
 		return -1;
+	if(current->pid > 0)
+		log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"signal\",\"type\":\"receive_sig\",\"process_id\":%d,\"signum\":%d}\n",current->pid, signum);
 	tmp.sa_handler = (void (*)(int)) handler;
 	tmp.sa_mask = 0;
 	tmp.sa_flags = SA_ONESHOT | SA_NOMASK;
@@ -60,18 +61,15 @@ int sys_signal(int signum, long handler, long restorer)
 	return handler;
 }
 
-int sys_sigaction(int signum, const struct sigaction * action,//-----------------------log
+int sys_sigaction(int signum, const struct sigaction * action,
 	struct sigaction * oldaction)
 {
 	struct sigaction tmp;
 
-	
-	//log("{\n");          //---------------------------------------log
-	//log("	\"signum\": \"%d\"\n",signum);
-	//log("}\n");
-
 	if (signum<1 || signum>32 || signum==SIGKILL)
 		return -1;
+	if(current->pid > 0)
+		log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"signal\",\"type\":\"receive_sig\",\"process_id\":%d,\"signum\":%d}\n", current->pid,signum);
 	tmp = current->sigaction[signum-1];
 	get_new((char *) action,
 		(char *) (signum-1+current->sigaction));
@@ -94,7 +92,8 @@ void do_signal(long signr,long eax, long ebx, long ecx, long edx,
 	struct sigaction * sa = current->sigaction + signr - 1;
 	int longs;
 	unsigned long * tmp_esp;
-
+	if(current->pid > 0)
+		log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"signal\",\"type\":\"do_signal\",\"process_id\":%d,\"signum\":%d}\n",current->pid, signr);
 	sa_handler = (unsigned long) sa->sa_handler;
 	if (sa_handler==1)
 		return;
@@ -111,6 +110,7 @@ void do_signal(long signr,long eax, long ebx, long ecx, long edx,
 	*(&esp) -= longs;
 	verify_area(esp,longs*4);
 	tmp_esp=esp;
+	
 	put_fs_long((long) sa->sa_restorer,tmp_esp++);
 	put_fs_long(signr,tmp_esp++);
 	if (!(sa->sa_flags & SA_NOMASK))
