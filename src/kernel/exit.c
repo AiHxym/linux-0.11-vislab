@@ -114,7 +114,7 @@ static void tell_father(int pid)
 		}
 	/* if we don't find any fathers, we just release ourselves */
 	/* This is not really OK. Must change it to make father 1 */
-	log("BAD BAD - no father found\n\r");
+	printk("BAD BAD - no father found\n\r");
 	release(current);
 }
 
