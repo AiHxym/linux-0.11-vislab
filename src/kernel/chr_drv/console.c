@@ -84,6 +84,8 @@ static void sysbeep(void);
  */
 #define RESPONSE "\033[?1;2c"
 
+
+
 /* NOTE! gotoxy thinks x==video_num_columns is ok */
 static inline void gotoxy(unsigned int new_x,unsigned int new_y)
 {
@@ -91,7 +93,27 @@ static inline void gotoxy(unsigned int new_x,unsigned int new_y)
 		return;
 	x=new_x;
 	y=new_y;
+	
+	//log("{\n");
+	//log("	");
+	//log("\"module\":\"interrupt\",\n");
+
+	//log("	");
+	//log("\"event\":\"console\",\n");
+
+	//log("	");
+	//log("\"priovider\":\"zl\",\n");
+
+	//log("	");
+	//log("\"time\":\"####\",\n");
+
+	//log("	");
+	//log("\"data\":{\n");
 	pos=origin + y*video_size_row + (x<<1);
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"gotoxy\",\"data\":{\"pos\":%d,\"new_x\":%d,\"new_y\":%d}}\n",pos,new_x,new_y);
+	//log("		\"pos\":\"%d\",\n",pos);
+	//log("		\"new_x\" : \"%d\",\n",new_x);
+	//log("		\"new_y\" : \"%d\",\n",new_y);
 }
 
 static inline void set_origin(void)
@@ -108,10 +130,18 @@ static void scrup(void)
 {
 	if (video_type == VIDEO_TYPE_EGAC || video_type == VIDEO_TYPE_EGAM)
 	{
+		//log("		\"video_type\": \"%2x\",\n",video_type);
+		//log("...\n");
 		if (!top && bottom == video_num_lines) {
 			origin += video_size_row;
 			pos += video_size_row;
 			scr_end += video_size_row;
+			//log("{\n");
+			//log("	\"up_one_row_Origin\": \"%d\",\n",origin);
+			//log("	\"up_one_row_Pos\": \"%d\",\n",pos);
+			//log("	\"up_one_row_Scr_end\": \"%d\"\n",scr_end);
+			//log("}\n");
+			//log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"scrup\",\"data\":{\"scrup_Origin\":%d,\"scrup_Pos\":%d,\"scrup_Scr_end\":%d}}\n",origin,pos,scr_end);
 			if (scr_end > video_mem_end) {
 				__asm__("cld\n\t"
 					"rep\n\t"
@@ -165,7 +195,9 @@ static void scrup(void)
 			"S" (origin+video_size_row*(top+1))
 			);
 	}
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"scrup\",\"data\":{\"scrup_Origin\":%d,\"scrup_Pos\":%d,\"scrup_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
+
 
 static void scrdown(void)
 {
@@ -199,6 +231,12 @@ static void scrdown(void)
 			"S" (origin+video_size_row*(bottom-1)-4)
 			);
 	}
+	//log("{\n");
+	//log("	\"scrdown_Origin\": \"%d\",\n",origin);
+	//log("	\"scrdown_Pos\": \"%d\",\n",pos);
+	//log("	\"scrdown_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"scrdown\",\"data\":{\"scrdown_Origin\":%d,\"scrdown_Pos\":%d,\"scrdown_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void lf(void)
@@ -209,6 +247,12 @@ static void lf(void)
 		return;
 	}
 	scrup();
+	//log("{\n");
+	//log("	\"lf_Origin\": \"%d\",\n",origin);
+	//log("	\"lf_Pos\": \"%d\",\n",pos);
+	//log("	\"lf_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"lf\",\"data\":{\"lf_Origin\":%d,\"lf_Pos\":%d,\"lf_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void ri(void)
@@ -219,12 +263,24 @@ static void ri(void)
 		return;
 	}
 	scrdown();
+	//log("{\n");
+	//log("	\"ri_Origin\": \"%d\",\n",origin);
+	//log("	\"ri_Pos\": \"%d\",\n",pos);
+	//log("	\"ri_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"ri\",\"data\":{\"ri_Origin\":%d,\"ri_Pos\":%d,\"ri_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void cr(void)
 {
 	pos -= x<<1;
 	x=0;
+	//log("{\n");
+	//log("	\"cr_Origin\": \"%d\",\n",origin);
+	//log("	\"cr_Pos\": \"%d\",\n",pos);
+	//log("	\"cr_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"cr\",\"data\":{\"cr_Origin\":%d,\"cr_Pos\":%d,\"cr_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void del(void)
@@ -234,6 +290,12 @@ static void del(void)
 		x--;
 		*(unsigned short *)pos = video_erase_char;
 	}
+	//log("{\n");
+	//log("	\"del_Origin\": \"%d\",\n",origin);
+	//log("	\"del_Pos\": \"%d\",\n",pos);
+	//log("	\"del_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"del\",\"data\":{\"del_Origin\":%d,\"del_Pos\":%d,\"del_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void csi_J(int par)
@@ -263,6 +325,12 @@ static void csi_J(int par)
 		::"c" (count),
 		"D" (start),"a" (video_erase_char)
 		);
+	//log("{\n");
+	//log("	\"csi_J_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_J_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_J_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_J\",\"data\":{\"csi_J_Origin\":%d,\"csi_J_Pos\":%d,\"csi_J_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void csi_K(int par)
@@ -294,6 +362,12 @@ static void csi_K(int par)
 		::"c" (count),
 		"D" (start),"a" (video_erase_char)
 		);
+	//log("{\n");
+	//log("	\"csi_K_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_K_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_K_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_K\",\"data\":{\"csi_K_Origin\":%d,\"csi_K_Pos\":%d,\"csi_K_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 void csi_m(void)
@@ -308,6 +382,12 @@ void csi_m(void)
 			case 7:attr=0x70;break;
 			case 27:attr=0x07;break;
 		}
+	//log("{\n");
+	//log("	\"csi_m_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_m_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_m_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_m\",\"data\":{\"csi_m_Origin\":%d,\"csi_m_Pos\":%d,\"csi_m_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static inline void set_cursor(void)
@@ -325,11 +405,16 @@ static void respond(struct tty_struct * tty)
 	char * p = RESPONSE;
 
 	cli();
+	//log("Close interrupt!");
 	while (*p) {
 		PUTCH(*p,tty->read_q);
 		p++;
+		//log("{\n");
+		//log("	\"respond_p\": \"%d\",\n",p);
+		//log("}\n");
 	}
 	sti();
+	//log("Open interrupt!");
 	copy_to_cooked(tty);
 }
 
@@ -344,6 +429,13 @@ static void insert_char(void)
 		*p=old;
 		old=tmp;
 		p++;
+		//log("{\n");
+		//log("	\"csi_J_Origin\": \"%d\",\n",origin);
+		//log("	\"csi_J_Pos\": \"%d\",\n",pos);
+		//log("	\"csi_J_Scr_end\": \"%d\",\n",scr_end);
+		//log("	\"insertCh_p\": \"%d\n",p);
+		//log("}\n");
+		log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"insert_char\",\"data\":{\"insert_ch_Origin\":%d,\"insert_ch_Pos\":%d,\"insert_ch_Scr_end\":%d}}\n",origin,pos,scr_end);
 	}
 }
 
@@ -353,11 +445,21 @@ static void insert_line(void)
 
 	oldtop=top;
 	oldbottom=bottom;
+	//log("OldTop: %d\n",top);
+	//log("OldBottom: %d\n",bottom);
 	top=y;
 	bottom = video_num_lines;
 	scrdown();
 	top=oldtop;
 	bottom=oldbottom;
+	//log("Top: %d\n",top);
+	//log("Bottom: %d\n",bottom);
+	//log("{\n");
+	//log("	\"insert_line_Origin\": \"%d\",\n",origin);
+	//log("	\"insert_line_Pos\": \"%d\",\n",pos);
+	//log("	\"insert_line_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"insert_line\",\"data\":{\"insert_line_Origin\":%d,\"insert_line_Pos\":%d,\"insert_line_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void delete_char(void)
@@ -373,6 +475,13 @@ static void delete_char(void)
 		p++;
 	}
 	*p = video_erase_char;
+	//log("{\n");
+	//log("	\"deleteCh_Origin\": \"%d\",\n",origin);
+	//log("	\"deleteCh_Pos\": \"%d\",\n",pos);
+	//log("	\"deleteCh_Scr_end\": \"%d\"\n",scr_end);
+	//log("	\"deleteCh_p\": \"%d\"\n",p);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"delete_char\",\"data\":{\"deleteCh_Origin\":%d,\"deleteCh_Pos\":%d,\"deleteCh_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void delete_line(void)
@@ -386,6 +495,12 @@ static void delete_line(void)
 	scrup();
 	top=oldtop;
 	bottom=oldbottom;
+	//log("{\n");
+	//log("	\"delete_line_Origin\": \"%d\",\n",origin);
+	//log("	\"delete_line_Pos\": \"%d\",\n",pos);
+	//log("	\"delete_line_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"delete_line\",\"data\":{\"delete_line_Origin\":%d,\"delete_line_Pos\":%d,\"delete_line_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void csi_at(unsigned int nr)
@@ -396,6 +511,12 @@ static void csi_at(unsigned int nr)
 		nr = 1;
 	while (nr--)
 		insert_char();
+	//log("{\n");
+	//log("	\"csi_at_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_at_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_at_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_at\",\"data\":{\"csi_at_Origin\":%d,\"csi_at_Pos\":%d,\"csi_at_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void csi_L(unsigned int nr)
@@ -406,6 +527,12 @@ static void csi_L(unsigned int nr)
 		nr = 1;
 	while (nr--)
 		insert_line();
+	//log("{\n");
+	//log("	\"csi_L_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_L_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_L_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_L\",\"data\":{\"csi_L_Origin\":%d,\"csi_L_Pos\":%d,\"csi_L_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void csi_P(unsigned int nr)
@@ -416,6 +543,12 @@ static void csi_P(unsigned int nr)
 		nr = 1;
 	while (nr--)
 		delete_char();
+	//log("{\n");
+	//log("	\"csi_P_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_P_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_P_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_P\",\"data\":{\"csi_P_Origin\":%d,\"csi_P_Pos\":%d,\"csi_P_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static void csi_M(unsigned int nr)
@@ -426,6 +559,12 @@ static void csi_M(unsigned int nr)
 		nr=1;
 	while (nr--)
 		delete_line();
+	//log("{\n");
+	//log("	\"csi_M_Origin\": \"%d\",\n",origin);
+	//log("	\"csi_M_Pos\": \"%d\",\n",pos);
+	//log("	\"csi_M_Scr_end\": \"%d\"\n",scr_end);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"csi_M\",\"data\":{\"csi_M_Origin\":%d,\"csi_M_Pos\":%d,\"csi_M_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 static int saved_x=0;
@@ -450,6 +589,9 @@ void con_write(struct tty_struct * tty)
 	nr = CHARS(tty->write_q);
 	while (nr--) {
 		GETCH(tty->write_q,c);
+		//log("{\n");
+		//log("	\"char\": \"%d\"\n",c);//------------------------------------log
+		//log("}\n");
 		switch(state) {
 			case 0:
 				if (c>31 && c<127) {
@@ -602,6 +744,13 @@ void con_write(struct tty_struct * tty)
 		}
 	}
 	set_cursor();
+	//log("{\n");
+	//log("	\"write_Origin\": \"%d\",\n",origin);
+	//log("	\"write_Pos\": \"%d\",\n",pos);
+	//log("	\"write_Scr_end\": \"%d\",\n",scr_end);
+	//log("	\"write_nr\": \"%d\"\n",nr);
+	//log("}\n");
+	log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"con_write\",\"data\":{\"write_Origin\":%d,\"write_Pos\":%d,\"write_Scr_end\":%d}}\n",origin,pos,scr_end);
 }
 
 /*
@@ -626,6 +775,10 @@ void con_init(void)
 	video_page = ORIG_VIDEO_PAGE;
 	video_erase_char = 0x0720;
 	
+	//log("num_of_columns:%d\n",ORIG_VIDEO_COLS);
+	//log("size_row:%d\n",video_num_columns);
+	//log("num_lines:%d\n",ORIG_VIDEO_LINES);
+
 	if (ORIG_VIDEO_MODE == 7)			/* Is this a monochrome display? */
 	{
 		video_mem_start = 0xb0000;

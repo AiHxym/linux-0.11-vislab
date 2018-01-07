@@ -57,7 +57,7 @@ union task_union {
 
 static union task_union init_task = {INIT_TASK,};
 
-long volatile jiffies=0;
+long volatile jiffies=0;  //------------------------------------------------------------------------jiffies
 long startup_time=0;
 struct task_struct *current = &(init_task.task);
 struct task_struct *last_task_used_math = NULL;
@@ -270,7 +270,7 @@ static struct timer_list {
 	struct timer_list * next;
 } timer_list[TIME_REQUESTS], * next_timer = NULL;
 
-void add_timer(long jiffies, void (*fn)(void))
+void add_timer(long jiffies, void (*fn)(void))  //----------------------------------------------add_timer
 {
 	struct timer_list * p;
 
@@ -300,6 +300,9 @@ void add_timer(long jiffies, void (*fn)(void))
 			p = p->next;
 		}
 	}
+	//log("{\n");			//--------------------------------------------------log
+	//log("	\"jiffies\": \"%ld\"\n",jiffies);
+	//log("}\n");
 	sti();
 }
 
@@ -307,7 +310,10 @@ void do_timer(long cpl)
 {
 	extern int beepcount;
 	extern void sysbeepstop(void);
-
+	
+	//log("{\n");			//--------------------------------------------------log
+	//log("	\"jiffies\": \"%ld\"\n",jiffies);
+	//log("}\n");
 	if (beepcount)
 		if (!--beepcount)
 			sysbeepstop();
@@ -339,7 +345,10 @@ void do_timer(long cpl)
 int sys_alarm(long seconds)
 {
 	int old = current->alarm;
-
+	
+	//log("{\n");			//--------------------------------------------------log
+	//log("	\"jiffies\": \"%ld\"\n",jiffies);
+	//log("}\n");
 	if (old)
 		old = (old - jiffies) / HZ;
 	current->alarm = (seconds>0)?(jiffies+HZ*seconds):0;

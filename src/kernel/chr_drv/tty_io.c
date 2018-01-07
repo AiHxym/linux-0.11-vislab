@@ -148,6 +148,10 @@ void copy_to_cooked(struct tty_struct * tty)
 
 	while (!EMPTY(tty->read_q) && !FULL(tty->secondary)) {
 		GETCH(tty->read_q,c);
+		log("{\"module\":\"interrupt\",\"provider\":\"zl\",\"event\":\"keyboard\",\"data\":{\"chInReadq\":\"%c\",\"current_time\":%d}}\n",c,CURRENT_TIME);
+		//log("{\n");			//--------------------------------------------------log
+		//log("	\"chInReadq\": \"%c\"\n",c);
+		//log("}\n");
 		if (c==13)
 			if (I_CRNL(tty))
 				c=10;
