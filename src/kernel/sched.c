@@ -57,7 +57,7 @@ union task_union {
 
 static union task_union init_task = {INIT_TASK,};
 
-long volatile jiffies=0;  //------------------------------------------------------------------------jiffies
+long volatile jiffies=0;
 long startup_time=0;
 struct task_struct *current = &(init_task.task);
 struct task_struct *last_task_used_math = NULL;
@@ -112,11 +112,24 @@ void schedule(void)
 		if (*p) {
 			if ((*p)->alarm && (*p)->alarm < jiffies) {
 					(*p)->signal |= (1<<(SIGALRM-1));
+					if((*p)->pid > 0)
+						log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"signal\",\"type\":\"send_sig\",\"process_id\":%d,\"signum\":%d}\n",(*p)->pid,SIGALRM);
 					(*p)->alarm = 0;
+					if ((*p)->pid>2){
+						log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+						log("{\n\"event\":\"sched\",\n\"type\":\"sigalarm\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"sigalarm\":%d\n}\n",jiffies,(*p)->pid,0);
+					}
 				}
 			if (((*p)->signal & (_BLOCKABLE & ~(*p)->blocked)) &&
-			(*p)->state==TASK_INTERRUPTIBLE)
+			(*p)->state==TASK_INTERRUPTIBLE){
+				if((*p)->pid > 0)
+						log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"wake_up\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",(*p)->pid,(*p)->state,TASK_RUNNING);
 				(*p)->state=TASK_RUNNING;
+				if ((*p)->pid>2){
+					log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+					log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,(*p)->pid,0);
+				}
+			}
 		}
 
 /* this is the scheduler proper: */
@@ -134,15 +147,28 @@ void schedule(void)
 		}
 		if (c) break;
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
-			if (*p)
+			if (*p){
 				(*p)->counter = ((*p)->counter >> 1) +
 						(*p)->priority;
+				if ((*p)->pid>2){
+					log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+					log("{\n\"event\":\"sched\",\n\"type\":\"counter\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"counter\":%d\n}\n",jiffies,(*p)->pid,(*p)->counter);
+				}
+			}
 	}
 	switch_to(next);
 }
 
 int sys_pause(void)
 {
+	if(current->state != TASK_INTERRUPTIBLE){
+		if(current->pid > 0)
+			log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"isleep\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",current->pid,current->state,TASK_INTERRUPTIBLE);
+	}
+	if (current->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,current->pid,0);
+		log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,current->pid,2);
+	}
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
 	return 0;
@@ -158,11 +184,35 @@ void sleep_on(struct task_struct **p)
 		panic("task[0] trying to sleep");
 	tmp = *p;
 	*p = current;
+	if(current->state != TASK_UNINTERRUPTIBLE){
+		if(current->pid > 0)
+			log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"usleep\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",current->pid,current->state,TASK_UNINTERRUPTIBLE);
+	}
+	if (tmp->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,tmp->pid,2);
+	}
+	if ((*p)->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+	}
 	current->state = TASK_UNINTERRUPTIBLE;
+	if (current->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,current->pid,1);
+	}
 	schedule();
 	*p = tmp;
-	if (tmp)
+	if ((*p)->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+	}
+	if (tmp){
+		if(tmp->state != TASK_RUNNING){
+			if((*p)->pid > 0)
+				log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"wake_up\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",tmp->pid,tmp->state,TASK_RUNNING);
+		}
 		tmp->state=TASK_RUNNING;
+		if(tmp->pid>2){
+			log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,tmp->pid,0);
+		}
+	}
 }
 
 void interruptible_sleep_on(struct task_struct **p)
@@ -175,21 +225,64 @@ void interruptible_sleep_on(struct task_struct **p)
 		panic("task[0] trying to sleep");
 	tmp=*p;
 	*p=current;
-repeat:	current->state = TASK_INTERRUPTIBLE;
+	if (tmp->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,tmp->pid,2);
+	}
+	if ((*p)->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+	}
+repeat:	
+	if(current->state != TASK_INTERRUPTIBLE){
+		if(current->pid > 0)
+			log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"isleep\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",current->pid,current->state,TASK_INTERRUPTIBLE);
+	}
+	current->state = TASK_INTERRUPTIBLE;
+	if (current->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,current->pid,2);
+	}
 	schedule();
 	if (*p && *p != current) {
+		if((*p)->state != TASK_RUNNING){
+			if((*p)->pid > 0)
+				log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"wake_up\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",(*p)->pid,(*p)->state,TASK_RUNNING);
+		}
 		(*p)->state = TASK_RUNNING;
+		if ((*p)->pid>2){
+			log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,(*p)->pid,0);
+		}
 		goto repeat;
 	}
 	*p = tmp;
-	if (tmp)
+	if ((*p)->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+	}
+	if (tmp){
+		if(tmp->state != TASK_RUNNING){
+			if(tmp->pid > 0)
+				log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"wake_up\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",tmp->pid,tmp->state,TASK_RUNNING);
+		}
 		tmp->state = TASK_RUNNING;
+		if(tmp->pid>2){
+			log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,tmp->pid,0);
+		}
+	}
 }
 
 void wake_up(struct task_struct **p)
 {
 	if (p && *p) {
+		if((*p)->state != TASK_RUNNING){
+			if((*p)->pid > 0)
+				log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"wake_up\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",(*p)->pid,(*p)->state,TASK_RUNNING);
+		}
 		(*p)->state = TASK_RUNNING;
+		if ((*p)->pid>2){
+			log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,(*p)->pid,1);
+			log("{\n\"event\":\"sched\",\n\"type\":\"statechange\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"new_state\":%d\n}\n",jiffies,(*p)->pid,0);
+		}
+		if ((*p)->pid>2){
+			log("{\n\"event\":\"sched\",\n\"type\":\"clearpointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d\n}\n",jiffies,(*p)->pid);
+		}
 		*p = NULL;
 	}
 }
@@ -270,7 +363,7 @@ static struct timer_list {
 	struct timer_list * next;
 } timer_list[TIME_REQUESTS], * next_timer = NULL;
 
-void add_timer(long jiffies, void (*fn)(void))  //----------------------------------------------add_timer
+void add_timer(long jiffies, void (*fn)(void))
 {
 	struct timer_list * p;
 
@@ -300,9 +393,6 @@ void add_timer(long jiffies, void (*fn)(void))  //------------------------------
 			p = p->next;
 		}
 	}
-	//log("{\n");			//--------------------------------------------------log
-	//log("	\"jiffies\": \"%ld\"\n",jiffies);
-	//log("}\n");
 	sti();
 }
 
@@ -310,10 +400,7 @@ void do_timer(long cpl)
 {
 	extern int beepcount;
 	extern void sysbeepstop(void);
-	
-	//log("{\n");			//--------------------------------------------------log
-	//log("	\"jiffies\": \"%ld\"\n",jiffies);
-	//log("}\n");
+
 	if (beepcount)
 		if (!--beepcount)
 			sysbeepstop();
@@ -322,12 +409,10 @@ void do_timer(long cpl)
 		current->utime++;
 	else
 		current->stime++;
-
 	if (next_timer) {
 		next_timer->jiffies--;
 		while (next_timer && next_timer->jiffies <= 0) {
 			void (*fn)(void);
-			
 			fn = next_timer->fn;
 			next_timer->fn = NULL;
 			next_timer = next_timer->next;
@@ -338,6 +423,10 @@ void do_timer(long cpl)
 		do_floppy_timer();
 	if ((--current->counter)>0) return;
 	current->counter=0;
+	if (current->pid>2){
+		log("{\n\"event\":\"sched\",\n\"type\":\"pointer\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"pointer\":%d\n}\n",jiffies,current->pid,0);
+		log("{\n\"event\":\"sched\",\n\"type\":\"counter\",\n\"provider\":\"Zach\",\n\"time\":%d,\n\"ID\":%d,\n\"counter\":%d\n}\n",jiffies,current->pid,current->counter);
+	}
 	if (!cpl) return;
 	schedule();
 }
@@ -346,11 +435,10 @@ int sys_alarm(long seconds)
 {
 	int old = current->alarm;
 	
-	//log("{\n");			//--------------------------------------------------log
-	//log("	\"jiffies\": \"%ld\"\n",jiffies);
-	//log("}\n");
 	if (old)
 		old = (old - jiffies) / HZ;
+	if(current->pid > 0)
+		log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"signal\",\"type\":\"set_alarm\",\"process_id\":%d,\"second\":%d}\n",current->pid,seconds);
 	current->alarm = (seconds>0)?(jiffies+HZ*seconds):0;
 	return (old);
 }
