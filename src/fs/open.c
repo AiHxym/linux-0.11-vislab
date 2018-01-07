@@ -199,18 +199,14 @@ log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_chown\"
 int sys_open(const char * filename,int flag,int mode)
 {
 	
-	if(flag== O_CREAT | O_TRUNC)
-		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_creat\",\"data\":{\"flag\":%d,\"mode\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,flag,mode);
-	else
-		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_open\",\"data\":{\"flag\":%d,\"mode\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,flag,mode);
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_open\",\"data\":{\"filename\":");
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_open\",\"data\":{\"flag\":%d,\"filename\":\"", CURRENT_TIME, flag);
 	char c;
 	char *a=filename;
 	while(c=get_fs_byte(a++))
 	{
-		log("%c");		
+		log("%c", c);		
 	}
-	log(",\"mode\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,flag,mode);
+	log("\",\"mode\":%d,\"result\":\"start\"}}\n",mode);
 	struct m_inode * inode;
 	struct file * f;
 	int i,fd;
@@ -284,10 +280,8 @@ int sys_open(const char * filename,int flag,int mode)
 	f->f_count = 1;
 	f->f_inode = inode;
 	f->f_pos = 0;
-	if(flag== O_CREAT | O_TRUNC)
-		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_creat\",\"data\":{\"flag\":%d,\"mode\":%d,\"result\":\"end\",\"fd\":%d}}\n",CURRENT_TIME,flag,mode,fd);
-	else
-		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_open\",\"data\":{\"flag\":%d,\"mode\":%d,\"result\":\"end\",\"fd\":%d}}\n",CURRENT_TIME,flag,mode,fd);
+
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_open\",\"data\":{\"flag\":%d,\"mode\":%d,\"result\":\"end\",\"fd\":%d}}\n",CURRENT_TIME,flag,mode,fd);
 	return (fd);
 }
 

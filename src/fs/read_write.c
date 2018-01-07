@@ -57,7 +57,7 @@ int sys_read(unsigned int fd,char * buf,int count)
 {
 	struct file * file;
 	struct m_inode * inode;
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_read\",\"data\":{\"fd\":%d,\"buf\":%c,\"count\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,fd,*buf,count);
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_read\",\"data\":{\"fd\":%d,\"count\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,fd,count);
 
 	if (fd>=NR_OPEN || count<0 || !(file=current->filp[fd]))
 		return -EINVAL;
@@ -92,16 +92,16 @@ int sys_write(unsigned int fd,char * buf,int count)
 {
 	struct file * file;
 	struct m_inode * inode;
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_write\",\"data\":{\"fd\":%d,\"buf\":%c,\"count\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,fd,*buf,count);
+	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_write\",\"data\":{\"fd\":%d,\"count\":%d,\"result\":\"start\"}}\n",CURRENT_TIME,fd,count);
 
 	if (fd>=NR_OPEN || count <0 || !(file=current->filp[fd]))
 	{
-		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_write\",\"data\":{\"fd\":%d,\"buf\":%c,\"count\":%d,\"result\":\"end\"}}\n",CURRENT_TIME,fd,*buf,count);
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_write\",\"data\":{\"fd\":%d,\"count\":%d,\"result\":\"end\"}}\n",CURRENT_TIME,fd,count);
 		return -EINVAL;
 	}
 	if (!count)
 	{
-		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_write\",\"data\":{\"fd\":%d,\"buf\":%c,\"count\":%d,\"result\":\"end\"}}\n",CURRENT_TIME,fd,*buf,count);
+		log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sys_write\",\"data\":{\"fd\":%d,\"count\":%d,\"result\":\"end\"}}\n",CURRENT_TIME,fd,count);
 		return 0;
 	}
 	inode=file->f_inode;

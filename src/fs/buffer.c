@@ -41,8 +41,6 @@ static inline void wait_on_buffer(struct buffer_head * bh)
 	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"wait_on_buffer\","
 		"\"data\":{"
 		"\"buffer\":%d}}\n",CURRENT_TIME,bh->b_blocknr);
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"cli\","
-		"\"data\":{}}\n",CURRENT_TIME);
 	cli();
 	
 	while (bh->b_lock)
@@ -53,8 +51,6 @@ static inline void wait_on_buffer(struct buffer_head * bh)
 		sleep_on(&bh->b_wait);
 	}
 	sti();
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"sti\","
-		"\"data\":{}}\n",CURRENT_TIME);
 }
 
 int sys_sync(void)
@@ -179,9 +175,7 @@ static inline void remove_from_queues(struct buffer_head * bh)
 static inline void insert_into_queues(struct buffer_head * bh)
 {
 /* put at end of free list */
-log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"insert_into_queues\",\"data\":{\"buffer\":%d,\"buffer_prev\":%d,\"buffer_next\":%d,\"buffer_prev_free\":%d,\"buffer_next_free\":%d}}\n",
-Y
-CURRENT_TIME,bh->b_blocknr,bh->b_prev,bh->b_next,bh->b_prev_free->b_blocknr,bh->b_next_free->b_blocknr);
+log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"insert_into_queues\",\"data\":{\"buffer\":%d,\"buffer_prev\":%d,\"buffer_next\":%d,\"buffer_prev_free\":%d,\"buffer_next_free\":%d}}\n",CURRENT_TIME,bh->b_blocknr,bh->b_prev,bh->b_next,bh->b_prev_free->b_blocknr,bh->b_next_free->b_blocknr);
 	bh->b_next_free = free_list;
 	bh->b_prev_free = free_list->b_prev_free;
 	free_list->b_prev_free->b_next_free = bh;

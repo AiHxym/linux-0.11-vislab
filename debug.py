@@ -6,7 +6,12 @@ class LogBP(gdb.Breakpoint):
     def stop(self):
         msg, is_field = gdb.lookup_symbol("msg")
         if msg is not None:
-            outputFile.write(msg.value(gdb.newest_frame()).string())
+            
+            try:
+                outputFile.write(msg.value(gdb.newest_frame()).string())
+            except Exception as e:
+                gdb.write("Error detected, caller: %s\n" % (gdb.newest_frame().older().older().name()))
+                print(e)
         else:
             gdb.write("Error: Symbol msg not found\n")
 
