@@ -139,6 +139,8 @@ static unsigned long copy_strings(int argc,char ** argv,unsigned long *page,
 				    !(pag = (char *) (page[p/PAGE_SIZE] =
 				      get_free_page()))) 
 					return 0;
+				log("{\"module\":\"memory\", \"event\":\"copy_strings\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",page[p/PAGE_SIZE]);
 				if (from_kmem==2)
 					set_fs(new_fs);
 
@@ -349,7 +351,15 @@ restart_interp:
 exec_error2:
 	iput(inode);
 exec_error1:
-	for (i=0 ; i<MAX_ARG_PAGES ; i++)
+	for (i=0 ; i<MAX_ARG_PAGES ; i++){
 		free_page(page[i]);
+		log("{\"module\":\"memory\", \"event\":\"do_execve\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",page[i]);
+
+	}
+
 	return(retval);
 }
+
+
+

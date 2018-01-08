@@ -81,6 +81,8 @@ __asm__("std ; repne ; scasb\n\t"
 	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
 	"D" (mem_map+PAGING_PAGES-1)
 	);
+// 	log("{\"module\":\"memory\", \"event\":\"get_free_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+// \"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",__res);
 return __res;
 }
 
@@ -90,6 +92,8 @@ return __res;
  */
 void free_page(unsigned long addr)
 {
+// 	log("{\"module\":\"memory\", \"event\":\"free_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+// \"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",addr);
 	if (addr < LOW_MEM) return;
 	if (addr >= HIGH_MEMORY)
 		panic("trying to free nonexistent page");
@@ -203,7 +207,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 		*to_dir = ((unsigned long) to_page_table) | 7;
 		nr = (from==0)?0xA0:1024;
 
-		log("0x%lx,",to_page_table);
+		log("0x%lx",to_page_table);
 	
 
 		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
@@ -214,15 +218,19 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 			*to_page_table = this_page;
 			if (this_page > LOW_MEM) {
 				*from_page_table = this_page;
+
+				log(",0x%lx",this_page);
 				this_page -= LOW_MEM;
 				this_page >>= 12;
 				mem_map[this_page]++;
 
-				log("0x%lx",this_page);
-				if (size!=0 || nr !=0){
-					log(",");
-				}
+				
+				
 			}
+		}
+		if (size !=0)
+		{
+			log(",");
 		}
 	}
 
@@ -263,6 +271,11 @@ unsigned long put_page(unsigned long page,unsigned long address)
 	else {
 		if (!(tmp=get_free_page()))
 			return 0;
+		log("{\"module\":\"memory\", \"event\":\"put_page\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"tmp\":0x%lx}}\n",tmp);
+
+
+
 		*page_table = tmp|7;
 		page_table = (unsigned long *) tmp;
 	}

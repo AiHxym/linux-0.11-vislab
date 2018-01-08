@@ -94,6 +94,8 @@ int copy_process(int nr, long ebp, long edi, long esi, long gs, long none,
 
 	if (!p)
 		return -EAGAIN;
+	log("{\"module\":\"memory\", \"event\":\"copy_process_get\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",p);
 	task[nr] = p;
 
 	// NOTE!: the following statement now work with gcc 4.3.2 now, and you
@@ -143,7 +145,10 @@ int copy_process(int nr, long ebp, long edi, long esi, long gs, long none,
 		__asm__("clts ; fnsave %0"::"m" (p->tss.i387));
 	if (copy_mem(nr, p)) {
 		task[nr] = NULL;
-		free_page((long)p);
+
+		free_page((long) p);
+		log("{\"module\":\"memory\", \"event\":\"copy_process_free\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",p);
 		return -EAGAIN;
 	}
 	for (i = 0; i<NR_OPEN; i++)
@@ -175,3 +180,10 @@ repeat:
 			return i;
 	return -EAGAIN;
 }
+
+
+// void print_task(void)
+// {
+// 	log("\"task\":{\"start_code\":0x%lx,\"end_code\":0x%lx,\"end_data\":0x%lx,\"brk\":0x%lx,\"start_stack\":0x%lx,\"esp\":0x%lx}",current->start_code,current->end_code,current->end_data,current->brk,current->start_stack,(current->tss).esp);
+// }
+

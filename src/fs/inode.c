@@ -16,7 +16,7 @@ struct m_inode inode_table[NR_INODE]={{0,},};
 
 static void read_inode(struct m_inode * inode);
 static void write_inode(struct m_inode * inode);
-
+// void print_task(void);
 static inline void wait_on_inode(struct m_inode * inode)
 {
 	cli();
@@ -159,6 +159,8 @@ void iput(struct m_inode * inode)
 		if (--inode->i_count)
 			return;
 		free_page(inode->i_size);
+			log("{\"module\":\"memory\", \"event\":\"iput\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",inode->i_size);
 		inode->i_count=0;
 		inode->i_dirt=0;
 		inode->i_pipe=0;
@@ -232,9 +234,18 @@ struct m_inode * get_pipe_inode(void)
 	if (!(inode = get_empty_inode()))
 		return NULL;
 	if (!(inode->i_size=get_free_page())) {
+
+
+
+
 		inode->i_count = 0;
 		return NULL;
 	}
+
+
+	log("{\"module\":\"memory\", \"event\":\"get_pipe_inode\",\"provider\":\"gqz\",\"current_proc\":\"%d\",\
+\"data\":{",current->pid);print_task(); log(",\"page\":0x%lx}}\n",inode->i_size);
+
 	inode->i_count = 2;	/* sum of readers/writers */
 	PIPE_HEAD(*inode) = PIPE_TAIL(*inode) = 0;
 	inode->i_pipe = 1;
@@ -336,3 +347,8 @@ static void write_inode(struct m_inode * inode)
 	brelse(bh);
 	unlock_inode(inode);
 }
+
+// void print_task(void)
+// {
+// 	log("\"task\":{\"start_code\":0x%lx,\"end_code\":0x%lx,\"end_data\":0x%lx,\"brk\":0x%lx,\"start_stack\":0x%lx,\"esp\":0x%lx}",current->start_code,current->end_code,current->end_data,current->brk,current->start_stack,(current->tss).esp);
+// }
