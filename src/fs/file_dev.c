@@ -16,8 +16,6 @@
 
 int file_read(struct m_inode * inode, struct file * filp, char * buf, int count)
 {
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"file_read\",\"data\":{\"inode\":%d,\"filp\":%d,\"count\":%d\"result\":\"start\"}}\n",CURRENT_TIME,inode->i_num,filp,count);
-
 	int left,chars,nr;
 	struct buffer_head * bh;
 
@@ -44,13 +42,11 @@ int file_read(struct m_inode * inode, struct file * filp, char * buf, int count)
 		}
 	}
 	inode->i_atime = CURRENT_TIME;
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"file_read\",\"data\":{\"inode\":%d,\"filp\":%d,\"count\":%d\"result\":\"end\"}}\n",CURRENT_TIME,inode->i_num,filp,count);
 	return (count-left)?(count-left):-ERROR;
 }
 
 int file_write(struct m_inode * inode, struct file * filp, char * buf, int count)
 {
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"file_write\",\"data\":{\"inode\":%d,\"filp\":%d,\"count\":%d\"result\":\"start\"}}\n",CURRENT_TIME,inode->i_num,filp,count);
 	off_t pos;
 	int block,c;
 	struct buffer_head * bh;
@@ -90,6 +86,5 @@ int file_write(struct m_inode * inode, struct file * filp, char * buf, int count
 		filp->f_pos = pos;
 		inode->i_ctime = CURRENT_TIME;
 	}
-	log("{\"module\":\"fs\",\"time\":%d,\"provider\":\"jsq\",\"event\":\"file_write\",\"data\":{\"inode\":%d,\"filp\":%d,\"count\":%d\"result\":\"end\"}}\n",CURRENT_TIME,inode->i_num,filp,count);
 	return (i?i:-1);
 }
