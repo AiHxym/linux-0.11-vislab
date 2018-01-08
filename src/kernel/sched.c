@@ -116,8 +116,8 @@ void schedule(void)
 						log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"signal\",\"type\":\"send_sig\",\"process_id\":%d,\"signum\":%d}\n",(*p)->pid,SIGALRM);
 					(*p)->alarm = 0;
 					if ((*p)->pid>2){
-						log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
-						log("{\"event\":\"sched\",\"type\":\"sigalarm\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"sigalarm\":%d}\n",jiffies,(*p)->pid,0);
+						log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+						log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"sigalarm\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"sigalarm\":%d}\n",jiffies,(*p)->pid,0);
 					}
 				}
 			if (((*p)->signal & (_BLOCKABLE & ~(*p)->blocked)) &&
@@ -126,8 +126,8 @@ void schedule(void)
 						log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"wake_up\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",(*p)->pid,(*p)->state,TASK_RUNNING);
 				(*p)->state=TASK_RUNNING;
 				if ((*p)->pid>2){
-					log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
-					log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,(*p)->pid,0);
+					log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+					log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,(*p)->pid,0);
 				}
 			}
 		}
@@ -151,8 +151,8 @@ void schedule(void)
 				(*p)->counter = ((*p)->counter >> 1) +
 						(*p)->priority;
 				if ((*p)->pid>2){
-					log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
-					log("{\"event\":\"sched\",\"type\":\"counter\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"counter\":%d}\n",jiffies,(*p)->pid,(*p)->counter);
+					log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+					log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"counter\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"counter\":%d}\n",jiffies,(*p)->pid,(*p)->counter);
 				}
 			}
 	}
@@ -166,8 +166,8 @@ int sys_pause(void)
 			log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"isleep\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",current->pid,current->state,TASK_INTERRUPTIBLE);
 	}
 	if (current->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,current->pid,0);
-		log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,current->pid,2);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,current->pid,0);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,current->pid,2);
 	}
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
@@ -189,19 +189,19 @@ void sleep_on(struct task_struct **p)
 			log("{\"module\":\"process\",\"time\":1234,\"provider\":\"lzk\",\"event\":\"state_change\",\"type\":\"usleep\",\"process_id\":%d,\"state1\":%d,\"state2\":%d}\n",current->pid,current->state,TASK_UNINTERRUPTIBLE);
 	}
 	if (tmp->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,tmp->pid,2);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,tmp->pid,2);
 	}
 	if ((*p)->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
 	}
 	current->state = TASK_UNINTERRUPTIBLE;
 	if (current->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,current->pid,1);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,current->pid,1);
 	}
 	schedule();
 	*p = tmp;
 	if ((*p)->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
 	}
 	if (tmp){
 		if(tmp->state != TASK_RUNNING){
@@ -210,7 +210,7 @@ void sleep_on(struct task_struct **p)
 		}
 		tmp->state=TASK_RUNNING;
 		if(tmp->pid>2){
-			log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,tmp->pid,0);
+			log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,tmp->pid,0);
 		}
 	}
 }
@@ -226,10 +226,10 @@ void interruptible_sleep_on(struct task_struct **p)
 	tmp=*p;
 	*p=current;
 	if (tmp->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,tmp->pid,2);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,tmp->pid,2);
 	}
 	if ((*p)->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
 	}
 repeat:	
 	if(current->state != TASK_INTERRUPTIBLE){
@@ -238,7 +238,7 @@ repeat:
 	}
 	current->state = TASK_INTERRUPTIBLE;
 	if (current->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,current->pid,2);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,current->pid,2);
 	}
 	schedule();
 	if (*p && *p != current) {
@@ -248,13 +248,13 @@ repeat:
 		}
 		(*p)->state = TASK_RUNNING;
 		if ((*p)->pid>2){
-			log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,(*p)->pid,0);
+			log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,(*p)->pid,0);
 		}
 		goto repeat;
 	}
 	*p = tmp;
 	if ((*p)->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
 	}
 	if (tmp){
 		if(tmp->state != TASK_RUNNING){
@@ -263,7 +263,7 @@ repeat:
 		}
 		tmp->state = TASK_RUNNING;
 		if(tmp->pid>2){
-			log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,tmp->pid,0);
+			log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,tmp->pid,0);
 		}
 	}
 }
@@ -277,11 +277,11 @@ void wake_up(struct task_struct **p)
 		}
 		(*p)->state = TASK_RUNNING;
 		if ((*p)->pid>2){
-			log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
-			log("{\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,(*p)->pid,0);
+			log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,(*p)->pid,1);
+			log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"statechange\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"new_state\":%d}\n",jiffies,(*p)->pid,0);
 		}
 		if ((*p)->pid>2){
-			log("{\"event\":\"sched\",\"type\":\"clearpointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d}\n",jiffies,(*p)->pid);
+			log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"clearpointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d}\n",jiffies,(*p)->pid);
 		}
 		*p = NULL;
 	}
@@ -424,8 +424,8 @@ void do_timer(long cpl)
 	if ((--current->counter)>0) return;
 	current->counter=0;
 	if (current->pid>2){
-		log("{\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,current->pid,0);
-		log("{\"event\":\"sched\",\"type\":\"counter\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"counter\":%d}\n",jiffies,current->pid,current->counter);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"pointer\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"pointer\":%d}\n",jiffies,current->pid,0);
+		log("{\"module\":\"process\",\"event\":\"sched\",\"type\":\"counter\",\"provider\":\"Zach\",\"time\":%d,\"ID\":%d,\"counter\":%d}\n",jiffies,current->pid,current->counter);
 	}
 	if (!cpl) return;
 	schedule();
